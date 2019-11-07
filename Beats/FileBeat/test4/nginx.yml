@@ -1,0 +1,8 @@
+filebeat.inputs:
+- type: syslog
+  protocol.udp:
+    host: "localhost:9000"  
+
+output.console:
+        pretty: true
+
