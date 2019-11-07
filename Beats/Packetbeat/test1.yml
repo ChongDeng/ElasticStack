@@ -1,0 +1,25 @@
+#============================== Network device ================================
+
+# Select the network interface to sniff the data. On Linux, you can use the
+# "any" keyword to sniff on all connected interfaces.
+packetbeat.interfaces.device: any
+
+packetbeat.protocols.http:
+  # Configure the ports where to listen for HTTP traffic. You can disable
+  # the HTTP protocol by commenting out the list of ports.
+  ports: [9200]
+  send_request: true   
+  include_body_for: ["application/json", "x-www-form-urlencoded"]
+
+#-------------------------- Elasticsearch output ------------------------------
+#output.elasticsearch:
+  # Array of hosts to connect to.
+  #  hosts: ["localhost:9200"]
+
+  # Optional protocol and basic auth credentials.
+  #protocol: "https"
+  #username: "elastic"
+  #password: "changeme"
+
+output.console:
+    pretty: true
