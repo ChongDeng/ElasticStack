@@ -1,0 +1,1327 @@
+
+#==================== CRUD ====================
+
+DELETE /website
+
+
+PUT /website/blog/123
+{
+  "title": "My first blog entry",
+  "text":  "I am starting to get the hang of this...",
+  "date":  "2014/01/02"
+}
+
+
+
+PUT /website/blog/1
+{
+  "title": "My first blog entry",
+  "text":  "I am starting to get the hang of this...",
+  "date":  "2014/01/02"
+}
+
+# 部分更新: 同时添加字段tags和字段views
+POST /website/blog/1/_update
+{
+   "doc" : {
+      "tags" : [ "testing" ],
+      "views": 0
+   }
+}
+
+#==================== bulk ====================
+
+POST /_bulk
+{ "delete": { "_index": "website", "_type": "blog", "_id": "123" }} 
+{ "create": { "_index": "website", "_type": "blog", "_id": "123" }}
+{ "title":    "My first blog post" }
+{ "index":  { "_index": "website", "_type": "blog" }}
+{ "title":    "My second blog post" }
+{ "update": { "_index": "website", "_type": "blog", "_id": "123", "retry_on_conflict" : 3} }
+{ "doc" : {"title" : "My updated blog post"} } 
+
+
+POST /my_store/products/_bulk
+{ "index": { "_id": 1 }}
+{ "price" : 10, "productID" : "XHDK-A-1293-#fJ3" }
+{ "index": { "_id": 2 }}
+{ "price" : 20, "productID" : "KDKE-B-9947-#kL5" }
+{ "index": { "_id": 3 }}
+{ "price" : 30, "productID" : "JODL-X-1937-#pV7" }
+{ "index": { "_id": 4 }}
+{ "price" : 30, "productID" : "QQPX-R-3956-#aD8" }
+
+POST /my_index6/my_type/_bulk
+{ "index": {}}
+{ "title": "The quick brown fox" }
+{ "index": {}}
+{ "title": "The quick brown fox jumps over the lazy dog" }
+{ "index": {}}
+{ "title": "The quick brown fox jumps over the quick dog" }
+{ "index": {}}
+{ "title": "Brown fox brown dog" }
+
+
+# explain
+GET /website/blog/_validate/query?explain
+{
+  "query": 
+  {
+    "match" : 
+    {
+      "title": "blog"
+    }
+      
+  }
+}
+
+
+
+#==================== 分析器 ====================
+
+#1 查看本文是如何被分析的
+GET /_analyze?pretty=true
+{
+  "text": "Text to a an the analyze", 
+  "analyzer": "standard"
+}
+
+#2 查看website的blog字段是如何被分析的
+GET /website/_analyze
+{
+  "field": "blog",
+  "text": "Black-cats" 
+}
+
+#3 If the text parameter is provided as array of strings, it is analyzed as a multi-value field.
+GET /_analyze
+{
+  "analyzer" : "standard",
+  "text" : ["this is a test", "the second text"]
+}
+
+#4 test a custom transient analyzer built from tokenizers, token filters, and char filters
+GET /_analyze
+{
+  "tokenizer" : "keyword",
+  "filter" : ["lowercase"],
+  "text" : "this is a test"
+}
+
+GET /_analyze
+{
+  "tokenizer" : "keyword",
+  "filter" : ["lowercase"],
+  "char_filter" : ["html_strip"],
+  "text" : "this is a <b>test</b>"
+}
+
+GET /_analyze
+{
+  "tokenizer" : "whitespace",
+  "filter" : ["lowercase", {"type": "stop", "stopwords": ["a", "is", "this"]}],
+  "text" : "this is a test"
+}
+
+#==================== 映射 ====================
+
+#1 查看website的映射
+GET /website/_mapping
+
+#==================== 索引管理 ====================
+
+#1 创建索引test2
+PUT /test2
+{
+    "settings" : {
+        "number_of_shards" : 1
+    },
+    "mappings" : {
+        "properties" : {
+            "field1" : { "type" : "text" }
+        }
+    }
+}
+
+#2 创建索引spanish_docs
+PUT /spanish_docs
+{
+    "settings": {
+        "analysis": {
+            "analyzer": {
+                "es_std": {
+                    "type":      "standard",
+                    "stopwords": "_spanish_"
+                }
+            }
+        }
+    }
+}
+
+
+#3 Add new fields to an existing index or changes the search settings of existing fields.
+PUT /website/_mapping
+{
+  "properties": {
+    "email": {
+      "type": "keyword"
+    }
+  }
+}
+
+#4 为my_index新增一个字段scut_field,同时指定字scut_field段的分析器
+PUT /website/_mapping
+{
+  "properties": {
+    "scut": {
+       "type":     "text",
+       "analyzer": "english"
+    }
+  }
+}
+
+#5 对scut字段和scut.english字段分别使用不同的analyzer
+
+#The scut field uses the default standard analyzer.
+#The scut.english multi-field uses the english analyzer, which removes stop words and applies stemming
+DELETE /my_index3
+PUT /my_index3
+{
+  "mappings": 
+  {
+    "properties": 
+    {
+      "scut": 
+      { 
+        "type": "text",
+        "fields": 
+        {
+          "english":
+          { 
+            "type":     "text",
+            "analyzer": "english"
+          }
+        }
+      }
+    }
+  }
+}
+
+GET my_index3/_analyze 
+{
+  "field": "scut",
+  "text": "The quick Brown Foxes."
+}
+
+GET my_index3/_analyze 
+{
+  "field": "scut.english",
+  "text": "The quick Brown Foxes."
+}
+
+#6 创建索引，同时对不同字段分别使用不同的analyzer
+PUT /my_index4
+{
+  "mappings": {
+    "properties": {
+      
+      "scut": { 
+        "type": "text",
+        "fields": {
+          "english": { 
+            "type":     "text",
+            "analyzer": "english"
+          }
+        }
+      },
+      
+      "sjsu": { 
+        "type": "text",
+        "analyzer": "standard"
+      }
+      
+    }
+  }
+}
+
+
+PUT my_index5
+{
+   "settings":{
+      "analysis":{
+         "analyzer":{
+            "my_analyzer":{ 
+               "type":"custom",
+               "tokenizer":"standard",
+               "filter":[
+                  "lowercase"
+               ]
+            },
+            "my_stop_analyzer":{ 
+               "type":"custom",
+               "tokenizer":"standard",
+               "filter":[
+                  "lowercase",
+                  "english_stop"
+               ]
+            }
+         },
+         "filter":{
+            "english_stop":{
+               "type":"stop",
+               "stopwords":"_english_"
+            }
+         }
+      }
+   },
+   "mappings":{
+       "properties":{
+          "title": {
+             "type":"text",
+             "analyzer":"my_analyzer", 
+             "search_analyzer":"my_stop_analyzer", 
+             "search_quote_analyzer":"my_analyzer" 
+         }
+      }
+   }
+}
+
+PUT my_index5/_doc/1
+{
+   "title":"The Quick Brown Fox"
+}
+
+PUT my_index5/_doc/2
+{
+   "title":"A Quick Brown Fox"
+}
+
+GET my_index5/_search
+{
+   "query":{
+      "query_string":{
+         "query":"\"the quick brown fox\"" 
+      }
+   }
+}
+
+#==================== 自定义分析器 ==================== 
+PUT /my_index2
+{
+    "settings": {
+        "analysis": {
+            "char_filter": {
+                "&_to_and": {
+                    "type":       "mapping",
+                    "mappings": [ "&=> and "]
+            }},
+            "filter": {
+                "my_stopwords": {
+                    "type":       "stop",
+                    "stopwords": [ "the", "a" ]
+            }},
+            "analyzer": {
+                "my_analyzer": {
+                    "type":         "custom",
+                    "char_filter":  [ "html_strip", "&_to_and" ],
+                    "tokenizer":    "standard",
+                    "filter":       [ "lowercase", "my_stopwords" ]
+            }}
+}}}
+
+GET /my_index2/_analyze
+{
+  "analyzer" : "my_analyzer",
+  "text" : "The quick & brown a fox"
+}
+
+
+PUT /my_index2
+{
+    "properties": {
+        "title": {
+            "type":      "string",
+            "analyzer":  "my_analyzer"
+        }
+    }
+}
+
+
+
+#============================== 深入搜索 ============================== 
+
+
+#==================== match ==================== 
+
+GET /website/blog/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+GET /website/blog/_search
+{
+  "query" : {
+	  "match" : {
+		  "title": "first"
+		}
+  }
+}
+
+#提高精度： "operator": "and"
+GET /my_index/my_type/_search
+{
+    "query": {
+        "match": {
+            "title": {      
+                "query":    "BROWN DOG!",
+                "operator": "and"
+            }
+        }
+    }
+}
+
+#minimum_should_match： 返回文档的title字段包含 "brown" AND "fox" 、 "brown" AND "dog" 或 "fox" AND "dog"
+GET /my_index/my_type/_search
+{
+  "query": {
+    "match": {
+      "title": {
+        "query":                "quick brown dog",
+        "minimum_should_match": "75%"
+      }
+    }
+  }
+}
+
+#==================== term: 对输入的查询字符串不分析 ==================== 
+
+#例1
+#step 1
+DELETE /my_store 
+
+#step 2
+PUT /my_store
+{
+  "mappings": {
+    "properties": {
+      "productID" : {
+          "type" : "keyword"
+      }
+    }
+  }
+}
+
+#step 3
+POST /my_store/_bulk
+{ "index": { "_id": 1 }}
+{ "price" : 10, "productID" : "XHDK-A-1293-#fJ3" }
+{ "index": { "_id": 2 }}
+{ "price" : 20, "productID" : "KDKE-B-9947-#kL5" }
+{ "index": { "_id": 3 }}
+{ "price" : 30, "productID" : "JODL-X-1937-#pV7" }
+{ "index": { "_id": 4 }}
+{ "price" : 30, "productID" : "QQPX-R-3956-#aD8" }
+
+#step 4
+GET /my_store/_search
+{
+    "query" : {
+        "constant_score" : { 
+            "filter" : {
+                "term" : { 
+                    "productID" : "XHDK-A-1293-#fJ3"
+                }
+            }
+        }
+    }
+}
+
+
+#============================ bool过滤器与组合查询 ============================ 
+
+GET /_search
+{
+  "query": { 
+    "bool": { 
+      
+      "must": [
+        { "match": { "title":   "Search"        }},
+        { "match": { "content": "Elasticsearch" }}
+      ],
+      
+      "filter": [ 
+        { "term":  { "status": "published" }},
+        { "range": { "publish_date": { "gte": "2015-01-01" }}}
+      ]
+    }
+  }
+}
+
+
+GET /my_store/_search
+{
+   "query" : {
+      "bool" : {
+          "should" : [
+            { "term" : {"price" : 20}}, 
+            { "term" : {"productID" : "XHDK-A-1293-#fJ3"}} 
+          ],
+          "must_not" : {
+            "term" : {"price" : 30} 
+          }
+      }
+   }
+}
+
+#嵌套的布尔过滤器
+# SELECT document
+# FROM   products
+# WHERE  productID      = "KDKE-B-9947-#kL5"
+# OR (     productID = "JODL-X-1937-#pV7"
+#       AND price     = 30 )
+
+GET /my_store/_search
+{
+   "query" : {
+      "bool" : {
+        
+        "should" : [
+            { "term" : {"productID" : "KDKE-B-9947-#kL5"}}, 
+            { "bool" : { 
+                  "must" : [
+                    { "term" : {"productID" : "JODL-X-1937-#pV7"}}, 
+                    { "term" : {"price" : 30}} 
+                  ]
+            }}
+        ]
+      }
+   }
+}
+
+#filter中的嵌套布尔过滤器
+GET /website/_search
+{
+  "query" : {
+    "bool": {
+      
+        "must":     { "match": { "title": "how to make millions" }},
+        "must_not": { "match": { "tag":   "spam" }},
+        "should": [
+            { "match": { "tag": "starred" }}
+        ],
+        
+        "filter": {
+          "bool": { 
+              "must": [
+                  { "range": { "date": { "gte": "2014/01/01" }}},
+                  { "range": { "price": { "lte": 29.99 }}}
+              ],
+              "must_not": [
+                  { "term": { "category": "ebooks" }}
+              ]
+          }
+        }
+    }  
+  }
+}
+
+GET /_search
+{
+  "query": {
+    "bool": {
+      
+      "should": [
+        { "match": { "title":  "War and Peace" }},
+        { "match": { "author": "Leo Tolstoy"   }},
+        { "bool":  {
+          "should": [
+            { "match": { "translator": "Constance Garnett" }},
+            { "match": { "translator": "Louise Maude"      }}
+          ]
+        }}
+      ]
+      
+    }
+  }
+}
+
+
+#============================ boost提升权重 ============================
+
+#例1 让包含 Lucene 的有更高的权重，并且包含 Elasticsearch 的语句比 Lucene 的权重更高
+GET /_search
+{
+    "query": {
+        "bool": {
+            "must": {
+                "match": {  
+                    "content": {
+                        "query":    "full text search",
+                        "operator": "and"
+                    }
+                }
+            },
+            "should": [
+                { "match": {
+                    "content": {
+                        "query": "Elasticsearch",
+                        "boost": 3 
+                    }
+                }},
+                { "match": {
+                    "content": {
+                        "query": "Lucene",
+                        "boost": 2 
+                    }
+                }}
+            ]
+        }
+    }
+}
+
+
+#例2 我们可能对 title 和 author 两条语句更感兴趣，这样就需要调整查询，使 title 和 author 语句相对来说更重要。
+GET /_search
+{
+  "query": {
+    "bool": {
+      "should": [
+        { "match": { 
+            "title":  {
+              "query": "War and Peace",
+              "boost": 2
+        }}},
+        { "match": { 
+            "author":  {
+              "query": "Leo Tolstoy",
+              "boost": 2
+        }}},
+        { "bool":  { 
+            "should": [
+              { "match": { "translator": "Constance Garnett" }},
+              { "match": { "translator": "Louise Maude"      }}
+            ]
+        }}
+      ]
+    }
+  }
+}
+
+
+#============================ 多数字段 ============================
+
+# step 1
+PUT /my_index7
+{
+  "settings": { "number_of_shards": 1 }, 
+  
+  "mappings": {
+    "properties": {
+      
+      "title":{ 
+        "type": "text",
+        "analyzer": "english",
+        
+        "fields": {
+          "std":
+          { 
+            "type":     "text",
+            "analyzer": "english"
+          }
+        }
+      },
+      
+      "sjsu": { 
+        "type": "text",
+        "analyzer": "standard"
+      }
+      
+    }
+  }
+}
+
+# step 2
+PUT /my_index7/_doc/1
+{ "title": "My rabbit jumps" }
+
+PUT /my_index7/_doc/2
+{ "title": "Jumping jack rabbits" }
+
+# step3
+GET /my_index7/_search
+{
+   "query": {
+        "multi_match": {
+            "query":  "jumping rabbits",
+            "type":   "most_fields", 
+            "fields": [ "title", "title.std" ]
+        }
+    }
+}
+
+# step 4: 每个字段对于最终评分的贡献可以通过自定义值 boost 来控制。比如，使 title 字段更为重要
+GET /my_index7/_search
+{
+   "query": {
+        "multi_match": {
+            "query":       "jumping rabbits",
+            "type":        "most_fields",
+            "fields":      [ "title^10", "title.std" ] 
+        }
+    }
+}
+
+
+#============================ _all 字段 ============================
+
+#例1 first_name 和 last_name 字段中的值会被复制到 full_name 字段。
+PUT /my_index8
+{
+    "mappings": {
+            "properties": {
+                "first_name": {
+                    "type":     "text",
+                    "copy_to":  "full_name" 
+                },
+                "last_name": {
+                    "type":     "text",
+                    "copy_to":  "full_name" 
+                },
+                "full_name": {
+                    "type":     "text"
+                }
+            }
+    }
+}
+
+#============================ 监控 ============================
+GET /_cluster/health
+
+#============================ 聚合 ============================
+
+#例1.step 1
+DELETE /cars
+PUT cars
+{
+  "mappings": {
+    "properties": {
+      
+      "color": { 
+        "type": "keyword"
+      },
+      
+      "make": { 
+        "type": "keyword"
+      }
+      
+    }
+  }
+}
+
+# 例1.step 2
+POST /cars/_bulk
+{ "index": {}}
+{ "price" : 10000, "color" : "red", "make" : "honda", "sold" : "2014-10-28" }
+{ "index": {}}
+{ "price" : 20000, "color" : "red", "make" : "honda", "sold" : "2014-11-05" }
+{ "index": {}}
+{ "price" : 30000, "color" : "green", "make" : "ford", "sold" : "2014-05-18" }
+{ "index": {}}
+{ "price" : 15000, "color" : "blue", "make" : "toyota", "sold" : "2014-07-02" }
+{ "index": {}}
+{ "price" : 12000, "color" : "green", "make" : "toyota", "sold" : "2014-08-19" }
+{ "index": {}}
+{ "price" : 20000, "color" : "red", "make" : "honda", "sold" : "2014-11-05" }
+{ "index": {}}
+{ "price" : 80000, "color" : "red", "make" : "bmw", "sold" : "2014-01-01" }
+{ "index": {}}
+{ "price" : 25000, "color" : "blue", "make" : "ford", "sold" : "2014-02-12" }
+
+
+#例2.step 1
+DELETE /cars
+PUT cars
+{
+  "mappings": {
+    "properties": {
+      
+      "color": { 
+        "type": "text",
+        "fields": {
+          "scut_keyword": { 
+            "type": "keyword"
+          }
+        }
+      },
+      
+      "make": { 
+        "type": "text",
+        "fields": {
+          "scut_keyword": { 
+            "type": "keyword"
+          }
+        }
+      }
+      
+    }
+  }
+}
+
+
+# 例2.step 2
+POST /cars/_bulk
+{ "index": {}}
+{ "price" : 10000, "color" : "red", "make" : "honda", "sold" : "2014-10-28" }
+{ "index": {}}
+{ "price" : 20000, "color" : "red", "make" : "honda", "sold" : "2014-11-05" }
+{ "index": {}}
+{ "price" : 30000, "color" : "green", "make" : "ford", "sold" : "2014-05-18" }
+{ "index": {}}
+{ "price" : 15000, "color" : "blue", "make" : "toyota", "sold" : "2014-07-02" }
+{ "index": {}}
+{ "price" : 12000, "color" : "green", "make" : "toyota", "sold" : "2014-08-19" }
+{ "index": {}}
+{ "price" : 20000, "color" : "red", "make" : "honda", "sold" : "2014-11-05" }
+{ "index": {}}
+{ "price" : 80000, "color" : "red", "make" : "bmw", "sold" : "2014-01-01" }
+{ "index": {}}
+{ "price" : 25000, "color" : "blue", "make" : "ford", "sold" : "2014-02-12" }
+
+#例1 求平均值
+POST /cars/_search?size=0
+{
+    "aggs" : {
+        "avg_grade" : { "avg" : { "field" : "price" } }
+    }
+}
+
+#例2 统计哪个颜色的车销量好
+GET /cars/_search
+{
+    "size" : 0,
+    "aggs" : { 
+        "popular_colors" : { 
+            "terms" : { 
+              "field" : "color"
+            }
+        }
+    }
+}
+
+#例2 统计哪个颜色的车销量好
+GET /cars/_search
+{
+    "size" : 0,
+    "aggs" : { 
+        "nidaye" : { 
+            "terms" : { 
+              "field" : "color.scut_keyword"
+            }
+        }
+    }
+}
+
+#例2.2 统计每个颜色的车的平均售价
+GET /cars/_search
+{
+   "size" : 0,
+   "aggs": {
+      "dc_colors": {
+         
+         "terms": {
+              "field": "color.scut_keyword"
+          },
+         
+         "aggs": { 
+            "avg_price": { 
+               "avg": {
+                  "field": "price" 
+               }
+            }
+         }
+         
+      }
+   }
+}
+
+#例2.3 嵌套桶： 统计每个颜色的汽车制造商的分布：
+GET /cars/_search
+{
+   "size" : 0,
+   "aggs": {
+      "dc_colors": {
+          
+          "terms": {
+              "field": "color.scut_keyword"
+          },
+         
+         "aggs": {
+            "avg_price": { 
+               "avg": {
+                  "field": "price"
+               }
+            },
+            "dc_make": { 
+                "terms": {
+                    "field": "make.scut_keyword" 
+                }
+            }
+         }
+      }
+   }
+}
+
+#例2.3.2 嵌套桶中的指标： 为每个汽车生成商计算最低和最高的价格：
+
+GET /cars/_search
+{
+   "size" : 0,
+   "aggs": {
+      "dc_colors": {
+          
+          "terms": {
+              "field": "color.scut_keyword"
+          },
+         
+         "aggs": {
+            "dc_avg_price": { 
+               "avg": {
+                  "field": "price"
+               }
+            },
+            "dc_make": { 
+                "terms": {
+                    "field": "make.scut_keyword" 
+                },
+                
+                "aggs" : { 
+                    "min_price" : { "min": { "field": "price"} }, 
+                    "max_price" : { "max": { "field": "price"} } 
+                }
+            }
+         }
+      }
+   }
+}
+
+#条形图：计算每个售价区间内汽车的销量
+GET /cars/_search
+{
+   "size" : 0,
+   "aggs":{
+      "price":{
+         "histogram":{ 
+            "field": "price",
+            "interval": 20000
+         },
+         "aggs":{
+            "revenue": {
+               "sum": { 
+                 "field" : "price"
+               }
+             }
+         }
+      }
+   }
+}
+
+#按时间统计： 折线图来回答如下问题： 每月销售多少台汽车
+GET /cars/_search
+{
+   "size" : 0,
+   "aggs": {
+      "sales": {
+         "date_histogram": {
+            "field": "sold",
+            "calendar_interval": "month", 
+            "format": "yyyy-MM-dd" 
+         }
+      }
+   }
+}
+
+#按季度展示所有汽车品牌的总销售额
+GET /cars/_search
+{
+   "size" : 0,
+   "aggs": {
+      "sales": {
+         "date_histogram": {
+            "field": "sold",
+            "calendar_interval": "quarter", 
+            "format": "yyyy-MM-dd"
+         },
+         "aggs": {
+            "total_sum": {
+               "sum": { "field": "price" } 
+            }
+         }
+      }
+   }
+}
+
+#按季度展示所有汽车品牌的总销售额。同时按季度按每个汽车品牌计算销售总额，以便找出哪种品牌更赚钱
+GET /cars/_search
+{
+   "size" : 0,
+   "aggs": {
+      "sales": {
+         "date_histogram": {
+            "field": "sold",
+            "calendar_interval": "quarter", 
+            "format": "yyyy-MM-dd"
+         },
+         "aggs": {
+            "per_make_sum": {
+               "terms": {
+                  "field": "make.scut_keyword"
+               },
+               "aggs": {
+                  "sum_price": {
+                     "sum": { "field": "price" } 
+                  }
+               }
+            },
+            "total_sum": {
+               "sum": { "field": "price" } 
+            }
+         }
+      }
+   }
+}
+
+# 统计福特在售车有多少种颜色
+GET /cars/_search
+{
+    "query" : {
+        "match" : {
+            "make" : "ford"
+        }
+    },
+    "aggs" : {
+        "colors" : {
+            "terms" : {
+              "field" : "color.scut_keyword"
+            }
+        }
+    }
+}
+
+#case 1: 全局桶“global”： 搜索对象为子集，聚合对象却是全集
+#                 统计福特汽车的平均售价与 所有 汽车平均售价的比较
+GET /cars/_search
+{
+    "size" : 0,
+    "query" : {
+        "match" : {
+            "make" : "ford"
+        }
+    },
+    "aggs" : {
+        "single_avg_price": {
+            "avg" : { "field" : "price" } 
+        },
+        "all": {
+            "global" : {}, 
+            "aggs" : {
+                "avg_price": {
+                    "avg" : { "field" : "price" } 
+                }
+
+            }
+        }
+    }
+}
+
+
+#找到售价在 $10,000 美元之上的所有汽车的平均售价
+GET /cars/_search
+{
+    "size" : 0,
+    "query" : {
+        "constant_score": {
+            "filter": {
+                "range": {
+                    "price": {
+                        "gte": 10000
+                    }
+                }
+            }
+        }
+    },
+    "aggs" : {
+        "single_avg_price": {
+            "avg" : { "field" : "price" }
+        }
+    }
+}
+
+#case 2 : 过滤桶：在搜索结果的基础上，引用过滤器 
+#                  搜索ford的结果，同时统计上个月度ford的平均售价
+GET /cars/_search
+{
+   "size" : 0,
+   "query":{
+      "match": {
+         "make": "ford"
+      }
+   },
+   "aggs":{
+      "recent_sales": {
+         "filter": { 
+            "range": {
+               "sold": {
+                  "from": "now-1M"
+               }
+            }
+         },
+         "aggs": {
+            "average_price":{
+               "avg": {
+                  "field": "price" 
+               }
+            }
+         }
+      }
+   }
+}
+
+
+#case 3: post filter：只过滤搜索结果，不过滤聚合结果
+#         搜绿色的ford, 同时统计所有福特的颜色
+GET /cars/_search
+{
+    "size" : 0,
+    "query": {
+        "match": {
+            "make": "ford"
+        }
+    },
+    "post_filter": {    
+        "term" : {
+            "color.scut_keyword": "green"
+        }
+    },
+    "aggs" : {
+        "all_colors": {
+            "terms" : { "field" : "color.scut_keyword" }
+        }
+    }
+}
+
+#按照doc_count 值的升序排序
+GET /cars/_search
+{
+    "size" : 0,
+    "aggs" : {
+        "colors" : {
+            "terms" : {
+              "field" : "color.scut_keyword",
+              "order": {
+                "_count" : "asc" 
+              }
+            }
+        }
+    }
+}
+
+
+#	桶按照平均值的升序排序。
+GET /cars/_search
+{
+    "size" : 0,
+    "aggs" : {
+        "dc_colors" : {
+            "terms" : {
+              "field" : "color.scut_keyword",
+              "order": {
+                "dc_avg_price" : "asc" 
+              }
+            },
+            "aggs": {
+                "dc_avg_price": {
+                    "avg": {"field": "price"} 
+                }
+            }
+        }
+    }
+}
+
+# 基于“深度”度量排序: 创建一个汽车售价的直方图，但是按照红色和绿色（不包括蓝色）车各自的方差来排序
+GET /cars/_search
+{
+    "size" : 0,
+    "aggs" : {
+        "colors" : {
+            "histogram" : {
+              "field" : "price",
+              "interval": 20000,
+              "order": {
+                "red_green_cars>stats.variance" : "asc" 
+              }
+            },
+            "aggs": {
+                "red_green_cars": {
+                    "filter": { "terms": {"color": ["red", "green"]}}, 
+                    "aggs": {
+                        "stats": {"extended_stats": {"field" : "price"}} 
+                    }
+                }
+            }
+        }
+    }
+}
+
+# "cardinality" 统计销售的汽车的颜色数量
+GET /cars/_search
+{
+    "size" : 0,
+    "aggs" : {
+        "distinct_colors" : {
+            "cardinality" : {
+              "field" : "color.scut_keyword"
+            }
+        }
+    }
+}
+
+
+# 每月有多少颜色的车被售出？
+GET /cars/_search
+{
+  "size" : 0,
+  "aggs" : {
+      "months" : {
+        "date_histogram": {
+          "field": "sold",
+          "calendar_interval": "month"
+        },
+        "aggs": {
+          "distinct_colors" : {
+              "cardinality" : {
+                "field" : "color.scut_keyword"
+              }
+          }
+        }
+      }
+  }
+}
+
+# 百分位
+
+#step 1
+PUT website3
+{
+  "mappings": {
+    "properties": {
+      
+      "zone": { 
+        "type": "text",
+        "fields": {
+          "scut_keyword": { 
+            "type": "keyword"
+          }
+        }
+      }
+      
+    }
+  }
+}
+
+#step 2
+POST /website3/_bulk
+{ "index": {}}
+{ "latency" : 100, "zone" : "US", "timestamp" : "2014-10-28" }
+{ "index": {}}
+{ "latency" : 80, "zone" : "US", "timestamp" : "2014-10-29" }
+{ "index": {}}
+{ "latency" : 99, "zone" : "US", "timestamp" : "2014-10-29" }
+{ "index": {}}
+{ "latency" : 102, "zone" : "US", "timestamp" : "2014-10-28" }
+{ "index": {}}
+{ "latency" : 75, "zone" : "US", "timestamp" : "2014-10-28" }
+{ "index": {}}
+{ "latency" : 82, "zone" : "US", "timestamp" : "2014-10-29" }
+{ "index": {}}
+{ "latency" : 100, "zone" : "EU", "timestamp" : "2014-10-28" }
+{ "index": {}}
+{ "latency" : 280, "zone" : "EU", "timestamp" : "2014-10-29" }
+{ "index": {}}
+{ "latency" : 155, "zone" : "EU", "timestamp" : "2014-10-29" }
+{ "index": {}}
+{ "latency" : 623, "zone" : "EU", "timestamp" : "2014-10-28" }
+{ "index": {}}
+{ "latency" : 380, "zone" : "EU", "timestamp" : "2014-10-28" }
+{ "index": {}}
+{ "latency" : 319, "zone" : "EU", "timestamp" : "2014-10-29" }
+
+
+#例1 获取网站延时数据的百分位分布
+GET /website3/_search
+{
+    "size" : 0,
+    "aggs" : {
+        "load_times" : {
+            "percentiles" : {
+                "field" : "latency" 
+            }
+        },
+        "avg_load_time" : {
+            "avg" : {
+                "field" : "latency" 
+            }
+        }
+    }
+}
+
+#例1.2 按地理区域，来获取网站延时数据的百分位分布
+GET /website3/_search
+{
+    "size" : 0,
+    "aggs" : {
+        "zones" : {
+            "terms" : {
+                "field" : "zone.scut_keyword" 
+            },
+            "aggs" : {
+                "load_times" : {
+                    "percentiles" : { 
+                      "field" : "latency",
+                      "percents" : [50, 95.0, 99.0] 
+                    }
+                },
+                "load_avg" : {
+                    "avg" : {
+                        "field" : "latency"
+                    }
+                }
+            }
+        }
+    }
+}
+
+#例1.3 按地理区域，统计网站延时有多少在210ms和800ms以下
+
+GET /website3/_search
+{
+    "size" : 0,
+    "aggs" : {
+        "zones" : {
+            "terms" : {
+                "field" : "zone.scut_keyword"
+            },
+            "aggs" : {
+                "load_times" : {
+                    "percentile_ranks" : {
+                      "field" : "latency",
+                      "values" : [210, 800] 
+                    }
+                }
+            }
+        }
+    }
+}
+
+
