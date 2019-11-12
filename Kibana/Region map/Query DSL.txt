@@ -1,0 +1,32 @@
+
+PUT /allcountries
+{
+  "mappings": {
+    "properties": {
+      "country": {"type": "keyword"},
+      "population": {"type": "integer"}
+    }
+  }
+}
+
+POST /allcountries/_bulk?refresh
+{"index":{"_id":1}}
+{"country": "China", "population": "1313973713"}
+{"index":{"_id":2}}
+{"country": "India", "population": "1095351995"}
+{"index":{"_id":3}}
+{"country": "United States", "population": "298444215"}
+{"index":{"_id":4}}
+{"country": "Indonesia", "population": "245452739"}
+{"index":{"_id":5}}
+{"country": "Brazil", "population": "188078227"}
+{"index":{"_id":6}}
+{"country": "Pakistan", "population": "165803560"}
+{"index":{"_id":7}}
+{"country": "Bangladesh", "population": "147365352"}
+{"index":{"_id":8}}
+{"country": "Russia", "population": "142893540"}
+{"index":{"_id":9}}
+{"country": "Nigeria", "population": "131859731"}
+{"index":{"_id":10}}
+{"country": "Japan", "population": "127463611"}
