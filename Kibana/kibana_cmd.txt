@@ -123,6 +123,44 @@ GET /_analyze
   "text" : "this is a test"
 }
 
+#设置分析器，并查看
+
+GET /_analyze?pretty=true
+{
+  "text": "SBJ-Holydocx.pdf", 
+  "analyzer": "standard"
+}
+
+
+GET /_analyze?pretty=true
+{
+  "text": "SBJ-Holydocx.pdf", 
+  "tokenizer": "keyword"
+}
+
+
+PUT /my_index4
+{
+    "settings": {
+        "analysis": {
+            "analyzer": {
+                "my_analyzer": {
+                    "type":           "custom",
+                    "tokenizer":      "keyword",
+			              "filter":       "lowercase"
+                }
+            }
+        }
+    }
+}
+
+GET /my_index4/_analyze?pretty=true
+{
+  "text": "SBJ-Holydocx.pdf", 
+  "analyzer": "my_analyzer"
+}
+
+
 #==================== 映射 ====================
 
 #1 查看website的映射
