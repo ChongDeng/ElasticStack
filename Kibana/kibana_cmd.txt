@@ -161,6 +161,28 @@ GET /my_index4/_analyze?pretty=true
 }
 
 
+#设置空格分词器
+PUT /my_index5
+{
+    "settings": {
+        "analysis": {
+            "analyzer": {
+                "my_analyzer": {
+                    "type":           "custom",
+                    "tokenizer":      "whitespace",
+			              "filter":       "lowercase"
+                }
+            }
+        }
+    }
+}
+
+GET /my_index5/_analyze?pretty=true
+{
+  "text": "SBJ-Holydocx.pdf ad assd", 
+  "analyzer": "my_analyzer"
+}
+
 #==================== 映射 ====================
 
 #1 查看website的映射
