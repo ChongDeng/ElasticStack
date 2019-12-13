@@ -419,6 +419,34 @@ GET my_index5/_search
    }
 }
 
+#==================== 索引别名 ====================
+
+#step 1 创建索引
+PUT /dc_index_v1
+
+#step 2  创建alias: dc_index
+PUT /dc_index_v1/_alias/dc_index
+
+#step 3  检测别名dc_index指向哪个索引：
+GET /*/_alias/dc_index
+
+#step 4 创建索引dc_index_v2
+PUT /dc_index_v2
+
+#step 5 将别名dc_index改成指向索引dc_index_v2
+POST /_aliases
+{
+    "actions": [
+        { "remove": { "index": "dc_index_v1", "alias": "dc_index" }},
+        { "add":    { "index": "dc_index_v2", "alias": "dc_index" }}
+    ]
+}
+
+#step 6: 再次检测别名dc_index指向哪个索引：
+GET /*/_alias/dc_index
+
+
+
 #==================== 自定义分析器 ==================== 
 PUT /my_index2
 {
