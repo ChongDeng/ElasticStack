@@ -408,6 +408,37 @@ PUT /my_index2
 
 
 
+PUT /pear
+{
+    "settings": {
+        "analysis": {
+            "char_filter": {
+                "underline_to_space": {
+                    "type":       "mapping",
+                    "mappings": [
+									"_=>-",
+									":=>-",
+									".=>-"
+								]
+            }},           
+            "analyzer": {
+                "my_analyzer": {
+                    "type":         "custom",
+                    "char_filter":  ["underline_to_space"],
+                    "tokenizer":    "standard",
+                    "filter":       [ "lowercase"]
+            }}
+}}}
+
+
+GET /pear/_analyze?pretty=true
+{
+  "text": "SBJ.Holydocx.pdf ad ASsd", 
+  "analyzer": "my_analyzer"
+}
+
+
+
 #============================== 深入搜索 ============================== 
 
 
