@@ -183,6 +183,60 @@ GET /my_index5/_analyze?pretty=true
   "analyzer": "my_analyzer"
 }
 
+
+#给域"CurrentPageContent"设置analyzer和search_analyzer
+#step1
+PUT /yetti-2020
+{
+    "settings": {
+        "analysis": {
+            "char_filter": {
+                "underline_to_space": {
+                    "type":       "mapping",
+                    "mappings": [
+									"_=>-",
+									":=>-",
+									".=>-"
+								]
+            }},           
+            "analyzer": {
+                "my_analyzer": {
+                    "type":         "custom",
+                    "char_filter":  ["underline_to_space"],
+                    "tokenizer":    "standard",
+                    "filter":       [ "lowercase"]
+            }}
+    }},
+    
+    "mappings": {
+      "properties": {
+        "CurrentPageContent": {
+          "type": "text",
+          "analyzer": "my_analyzer", 
+          "search_analyzer": "my_analyzer" 
+        }
+      }
+    }
+  
+}
+
+#step2: 先插入数据"SBJ_Holydocx.pdf"，然后执行下面查询
+GET /yetti-2020/_search?pretty
+		{
+				"query" : {
+					"bool": {
+				        "must":
+				        	[
+				        		{"match": { "CurrentPageContent": "holydocx.pdf" }},
+				        		{"match": { "Author": "chong"}}
+				        	] 
+				    }
+				}
+				,
+				 "size": 2,
+				 "from": 0
+		}
+
 #==================== 映射 ====================
 
 #1 查看website的映射
