@@ -29,6 +29,18 @@ POST /website/blog/1/_update
    }
 }
 
+
+curl -XGET 'localhost:9200/index1/_search?pretty=true&search_type=dfs_query_then_fetch' -d '{
+        "query": {
+        "match_phrase_prefix": {
+           "title": {
+             "query": "d",
+             "max_expansions": 5
+           }
+         }
+       }
+     }'
+
 #==================== bulk ====================
 
 POST /_bulk
